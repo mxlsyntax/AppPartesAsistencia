@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="author" content="NG">
+
+  <title>ZXing TypeScript | Decoding from camera stream</title>
+
+  <link rel="stylesheet" rel="preload" as="style" onload="this.rel='stylesheet';this.onload=null" href="https://fonts.googleapis.com/css?family=Roboto:300,300italic,700,700italic">
+  <link rel="stylesheet" rel="preload" as="style" onload="this.rel='stylesheet';this.onload=null" href="https://unpkg.com/normalize.css@8.0.0/normalize.css">
+  <link rel="stylesheet" rel="preload" as="style" onload="this.rel='stylesheet';this.onload=null" href="https://unpkg.com/milligram@1.3.0/dist/milligram.min.css">
+</head>
+
+<body>
+
+  <main class="wrapper" style="padding-top:2em">
+
+    <section class="container" id="demo-content">
+
+      <div class="col-xl-7" align="center">
+
+        <div style="display: none;">
+          <a class="button" id="startButton">Start</a>
+          <a class="button" id="resetButton">Reset</a>
+        </div>
+
+        <div>
+          <video id="video" width="100%" height="400px" style="border: 1px solid gray"></video>
+        </div>
+
+        <p id="men_no_camara" style="display:none">
+          No se ha encontrado ninguna cámara, si está seguro de tenerla, pongase en contacto con soporte.
+        </p>
+
+        <div id="sourceSelectPanel" style="display:none">
+          <label for="sourceSelect">Change video source:</label>
+          <select id="sourceSelect" style="max-width:400px; display:none">
+          </select>
+        </div>
+
+        <div style="display: none">
+          <label for="decoding-style"> Decoding Style:</label>
+          <select id="decoding-style" size="1">
+            <option value="once">Decode once</option>
+            <option value="continuously">Decode continuously</option>
+          </select>
+        </div>
+
+        <div style="display: none">
+            <label style="display: none">Result:</label>
+            <pre style="display: none"><code id="result"></code></pre>
+        </div>
+        
+
+        <button class="btn btn-primary btn-xl" data-bs-dismiss="modal" aria-label="Close" id="botonCerrar" onclick="botonCerrar()" style="margin-top: 30px; font-size: 22px;">Cancelar</button>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <script type="text/javascript" src="https://unpkg.com/@zxing/library@latest"></script>
+  <script type="text/javascript">
+
+    //NG20240627 PARA OCULTAR EL TECLADO VIRTUAL, FUNCIONA LA MAYORIA DE VECES, NO SIEMPRE
+    if ("virtualKeyboard" in navigator) {
+      //alert("entra")
+      navigator.virtualKeyboard.hide()
+    }
+
+    function decodeOnce(codeReader, selectedDeviceId) {
+      codeReader.decodeFromInputVideoDevice(selectedDeviceId, 'video').then((result) => {
+        console.log(result)
+        document.getElementById('result').textContent = result.text
+        //NG20240623 SI ES LECTURA SIMPLE, CERRAMOS CAMARA CUANDO LEEMOS
+        codeReader.reset()
+        poner_cod_bar()
+      }).catch((err) => {
+        console.error(err)
+        document.getElementById('result').textContent = err
+      })
+    }
+
+    //NG20240621 ESTABLECEMOS EL VALOR DE LO ESCANEADO EN EL CAMPO QUE LO ESTA ESPERANDO
+    function poner_cod_bar(){
+        playSonido();
+        var codigo_leido = document.getElementById('result').textContent;
+        //alert(codigo_leido);
+        window.parent.document.getElementById('cd_pref_autogen').value = codigo_leido;
+        window.parent.escribir_autogen_uuid();
+        document.getElementById('result').value = "";
+        window.parent.CerrarModalEscaneo2();
+    }
+
+    function botonCerrar(codeReader){
+        codeReader.reset()
+        window.parent.CerrarModalEscaneo2()
+    }
+
+    function decodeContinuously(codeReader, selectedDeviceId) {
+      codeReader.decodeFromInputVideoDeviceContinuously(selectedDeviceId, 'video', (result, err) => {
+        if (result) {
+          playSonido()
+          // properly decoded qr code
+          console.log('Found QR code!', result)
+          document.getElementById('result').textContent = result.text
+        }
+
+        if (err) {
+          // As long as this error belongs into one of the following categories
+          // the code reader is going to continue as excepted. Any other error
+          // will stop the decoding loop.
+          //
+          // Excepted Exceptions:
+          //
+          //  - NotFoundException
+          //  - ChecksumException
+          //  - FormatException
+
+          if (err instanceof ZXing.NotFoundException) {
+            console.log('No QR code found.')
+          }
+
+          if (err instanceof ZXing.ChecksumException) {
+            console.log('A code was found, but it\'s read value was not valid.')
+          }
+
+          if (err instanceof ZXing.FormatException) {
+            console.log('A code was found, but it was in a invalid format.')
+          }
+        }
+      })
+    }
+
+    function playSonido() {                      
+        var lecturaBuena = new Audio('assets/audio/lecturabuena.mp3')
+        lecturaBuena.play()
+    }
+
+    window.addEventListener('load', function () {
+      let selectedDeviceId;
+      //const codeReader = new ZXing.BrowserQRCodeReader()
+      //NG20240623 CAMBIAMOS A MULTI, EL ANTERIOR SOLO LEE QR...
+      const codeReader = new ZXing.BrowserMultiFormatReader()
+      console.log('ZXing code reader initialized')
+
+      codeReader.getVideoInputDevices()
+        .then((videoInputDevices) => {
+          const sourceSelect = document.getElementById('sourceSelect')
+          //selectedDeviceId = videoInputDevices[0].deviceId
+
+          //NG20240623 LE DAMOS LA VUELTA A LOS DISPOSITIVO PARA QUE COJA LA 
+          //CAMARA TRASERA POR DEFECTO.
+          videoInputDevices = videoInputDevices.reverse()
+
+          //selectedDeviceId = videoInputDevices[1].deviceId
+
+          if (videoInputDevices.length >= 1) {
+            videoInputDevices.forEach((element) => {
+              const sourceOption = document.createElement('option')
+              sourceOption.text = element.label
+              sourceOption.value = element.deviceId
+              sourceSelect.appendChild(sourceOption)
+            })
+
+            sourceSelect.onchange = () => {
+              selectedDeviceId = sourceSelect.value;
+            };
+
+            const sourceSelectPanel = document.getElementById('sourceSelectPanel')
+            //NG20240623 OCULTAMOS LOS ELEMENTOS DE SELECCION DE CAMARA, PARA QUE COJA LA TRASERA.
+            //sourceSelectPanel.style.display = 'block'
+            sourceSelectPanel.style.display = 'none'
+
+            //NG20240623 DISPARAMOS YA LA CAMARA
+            decodeOnce(codeReader, selectedDeviceId);
+
+          } else if (videoInputDevices.length == 0){
+            //NG20240623 SI NO SE ENCUENTRA CAMARA, ESCONDEMOS EL DIV DEL VIDEO
+            //Y MOSTRAMOS MENSAJE
+            document.getElementById('video').style.display='none';
+            document.getElementById('men_no_camara').style.display='block';
+
+          }
+
+          document.getElementById('startButton').addEventListener('click', () => {
+
+            const decodingStyle = document.getElementById('decoding-style').value;
+
+            if (decodingStyle == "once") {
+              decodeOnce(codeReader, selectedDeviceId);
+            } else {
+              decodeContinuously(codeReader, selectedDeviceId);
+            }
+
+            console.log(`Started decode from camera with id ${selectedDeviceId}`)
+          })
+
+          document.getElementById('resetButton').addEventListener('click', () => {
+            codeReader.reset()
+            document.getElementById('result').textContent = '';
+            console.log('Reset.')
+          })
+
+          //NG20240623 BOTON CERRAR
+          document.getElementById('botonCerrar').addEventListener('click', () => {
+            botonCerrar(codeReader)
+          })
+
+        })
+        .catch((err) => {
+          console.error(err)
+        })
+    })
+  </script>
+
+</body>
+
+</html>

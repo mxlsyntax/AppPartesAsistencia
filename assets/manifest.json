@@ -1,0 +1,49 @@
+{
+  "name": "App Base",
+  "lang": "es",
+  "short_name": "Aplicación Base",
+  "description": "App Base de Global System",
+  "theme_color": "#003061",
+  "background_color": "#fff",
+  "display": "standalone",
+  "orientation": "portrait",
+  //"scope": "/", Define el ámbito de navegación en el contexto de la aplicación web.
+  "start_url": "https://globalsystem.es/AppWeb/Base/login.html",
+  "icons": [
+    {
+      "src": "img/logo_global_grande.webp",
+      "sizes": "48x48",
+      "type": "image/webp"
+    },
+    {
+      "src": "icons/icon-72x72.ico",
+      "sizes": "72x72",
+      "type": "image/ico"
+    },
+    {
+      "src": "icons/icon-96x96.ico",
+      "sizes": "96x96",
+      "type": "image/ico"
+    },
+    {
+      "src": "icons/icon-128x128.ico",
+      "sizes": "128x128",
+      "type": "image/ico"
+    },
+    {
+      "src": "icons/icon-256x256.ico",
+      "sizes": "256x256",
+      "type": "image/ico"
+    },
+    {
+      "src": "icons/icon-384x384.ico",
+      "sizes": "384x384",
+      "type": "image/ico"
+    },
+    {
+      "src": "icons/icon-512x512.ico",
+      "sizes": "512x512",
+      "type": "image/ico"
+    }
+  ]
+}

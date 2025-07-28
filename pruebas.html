@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Prueba OneSignal en localhost</title>
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "67a6cb2e-a465-4077-b068-a4c1f60ae2d9",
+      safari_web_id: "web.onesignal.auto.4cbbb6e8-691d-4369-88f4-1bdd9ac43935",
+      allowLocalhostAsSecureOrigin: true, // NG20250507 ESTA LÍNEA es clave para localhost
+      notifyButton: {
+        enable: true,
+      },
+    });
+  });
+  </script>
+</head>
+<body>
+  <h1>Suscripción a notificaciones (prueba local)</h1>
+  <button onclick="suscribirse()">Activar notificaciones</button>
+</body>
+</html>
