@@ -4,11 +4,11 @@ export const db = new Dexie("AppPartesAsistenciaDB");
 
 // Definición de las tablas
 db.version(6).stores({
-  trabajadores: 'cdtb, nombre, password, tipo',
+  trabajadores: 'cdtb, tb_deno, tb_pass, tb_app',
   clientes: 'cdcl, cdcif, cl_deno, cl_pob, cl_prov, cl_tel, cl_ema, cl_fpag, cl_denofp',
   articulos: 'cdart, ar_deno, ar_ref, ar_bar, ar_pvp, ar_prv, ar_dprv',
-  maquinas: 'cdmaq, maq_desc, maq_ref, cdprov, cdcl, maq_vdo, maq_es',
-  partes_asistencia: 'cdpart, part_cdcl, part_fec, part_est, part_tna',
+  maquinas: 'cdmq, mq_desc,mq_ref, mq_cdp, mq_prv, mq_ccl, mq_clien, mq_gar, mq_fv, mq_obs, mq_man, mq_vdo, mq_es',
+  partes: 'cdpt, pt_cdcl, pt_denocl, pt_del, pt_fec, pt_hav, pt_tna, pt_nmtn, pt_dsi, pt_fep, pt_hop, pt_est, pt_obs',
   acciones_pendientes: '++id, accion, fecha, hora, usuario'
 });
 
@@ -172,7 +172,7 @@ export async function cargarMaquinasDesdeGSBase() {
     const data = await ejecutarAccionGSB('a_leer_maquinas');
     console.log("🔄 Respuesta de la API:", data);
     if (data.resultado === "ok") {
-      const maquinas = data.datos.filter(m => m.cdmaq && m.cdmaq.trim() !== '');
+      const maquinas = data.datos.filter(m => m.cdmq && m.cdmq.trim() !== '');
 
       console.log("🔄 Maquinas obtenidas:", maquinas);
       await guardarTabla('maquinas', maquinas);
@@ -211,20 +211,23 @@ function traducirVenta(maq_vdo) {
 } */
 
 // Funciones para cargar partes de asistencia desde GSBase y guardarlos en IndexedDB
-export async function cargarPartesAsistenciaDesdeGSBase() {
+export async function cargarPartesDesdeGSBase() {
   try {
     const data = await ejecutarAccionGSB('a_leer_partesasis');
-    console.log("🔄 Respuesta de la API:", data);
-    if (data.resultado === "ok") {
-      const partesAsistencia = data.datos.filter(p => p.cdpart && p.cdpart.trim() !== '');
+    console.log("🔄 Respuesta de la API (partes):", data);
 
-      console.log("🔄 Partes de asistencia obtenidas:", partesAsistencia);
-      await guardarTabla('partes_asistencia', partesAsistencia);
+    if (data.resultado === "ok") {
+      const partes = data.datos.filter(p => p.cdpt && p.cdpt.trim() !== '');
+
+      console.log("📦 Partes obtenidos:", partes);
+
+      await guardarTabla('partes', partes);
     } else {
-      console.warn("⚠ Respuesta incorrecta:", data);
+      console.warn("⚠ Respuesta incorrecta al cargar partes:", data);
     }
+
   } catch (err) {
-    console.error("❌ Error al cargar partes de asistencia:");
+    console.error("❌ Error al cargar partes:");
     if (err instanceof SyntaxError) {
       console.error("⚠️ La respuesta no es JSON válido.");
     }
@@ -287,6 +290,8 @@ export async function sincronizarDatosOffline() {
     await cargarArticulosDesdeGSBase();
     await cargarClientesDesdeGSBase();
     await cargarMaquinasDesdeGSBase();
+    await cargarPartesDesdeGSBase();
+
     console.log('✅ Licencia validada. Procediendo a descargar datos...');
     actualizarMensajeModal('Sincronización completa ✅');
     setTimeout(ocultarModalSincronizacion, 5000);
