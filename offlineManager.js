@@ -1,13 +1,18 @@
 import Dexie from 'https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.mjs';
+export const db = new Dexie("AppPartesAsistenciaDB");
 
-export const db = new Dexie("ViajesDietasDB");
 
-db.version(3).stores({
-  trabajadores: 'cdtrabajador, nombre, password, tipo',
+// Definición de las tablas
+db.version(6).stores({
+  trabajadores: 'cdtb, nombre, password, tipo',
+  clientes: 'cdcl, cdcif, cl_deno, cl_pob, cl_prov, cl_tel, cl_ema, cl_fpag, cl_denofp',
+  articulos: 'cdart, ar_deno, ar_ref, ar_bar, ar_pvp, ar_prv, ar_dprv',
+  maquinas: 'cdmaq, maq_desc, maq_ref, cdprov, cdcl, maq_vdo, maq_es',
+  partes_asistencia: 'cdpart, part_cdcl, part_fec, part_est, part_tna',
+  acciones_pendientes: '++id, accion, fecha, hora, usuario'
 });
 
 export default db;
-
 
 const llamadas_php = GetVariableLocalStorage("llamadas_php");
 const servidor_ip_publica = GetVariableLocalStorage("servidor_ip_publica");
@@ -21,22 +26,34 @@ const cdaplicacion = GetVariableLocalStorage("cdaplicacion");
 const cd_pref_autogen = GetVariableLocalStorage("cd_pref_autogen");
 const historico_activo = GetVariableLocalStorage("historico_activo");
 const url_conexion = GetVariableLocalStorage("url_conexion");
+const id_licencia_gsb = GetVariableLocalStorage("id_licencia_gsb_pref");
 
+const offline_manual = 'A';
 
-export async function guardarTrabajadores(trabajadores) {
-  await db.trabajadores.clear();
-  await db.trabajadores.bulkAdd(trabajadores);
+// Función para cargar las tablas en local tras traerlas de GSBase
+export async function guardarTabla(nombreTabla, datos) {
+  if (!db[nombreTabla]) {
+    throw new Error(`❌ La tabla "${nombreTabla}" no existe en IndexedDB`);
+  }
+
+  await db[nombreTabla].clear();
+  await db[nombreTabla].bulkAdd(datos);
+
+  console.log(`✅ Datos guardados en la tabla ${nombreTabla}:`, datos.length);
 }
 
-export async function obtenerTodosLosTrabajadores() {
-  return await db.trabajadores.toArray();
+export async function guardarAccionPendiente(accion) {
+  await db.acciones_pendientes.add({
+    accion: accion.accion,
+    argumentos: accion.argumentos,
+    fecha: accion.fecha || new Date().toISOString().slice(0, 10),
+    hora: accion.hora || new Date().toLocaleTimeString('es-ES'),
+    usuario: accion.usuario
+  });
 }
 
-export async function obtenerTrabajadorPorCodigo(cdtrabajador) {
-  return await db.trabajadores.get(cdtrabajador);
-}
-
-export async function cargarTrabajadoresDesdeGSBase() {
+// Función para ejecutar acciones en GSBase 
+export async function ejecutarAccionGSB(accion_gsb, arg = '{}') {
   if (
     !servidor_ip_publica || !puerto || !empresa_gestora ||
     !aplicacion || !ejercicio || !empresa_id || !ventana_pref
@@ -45,8 +62,7 @@ export async function cargarTrabajadoresDesdeGSBase() {
     return;
   }
 
-
-  const url_conexion = `http://localhost/AppWeb/AppPartesAsistencia/funciones.php`
+  const url = `http://localhost/AppWeb/AppPartesAsistencia/${url_conexion}`;
 
   const params = {
     servidor_ip_publica: servidor_ip_publica,
@@ -60,7 +76,8 @@ export async function cargarTrabajadoresDesdeGSBase() {
     historico_activo: historico_activo,
     cdaplicacion: cdaplicacion,
     accion: "ejecutar_accion_gsb",
-    accion_gsb: "a_leer_trabajadores"
+    accion_gsb: accion_gsb,
+    arg: arg || '{}'
   };
 
   try {
@@ -71,17 +88,25 @@ export async function cargarTrabajadoresDesdeGSBase() {
     });
 
     const text = await res.text();
+    console.log("🔍 Respuesta cruda del servidor:", text); // 🔴 Aquí verás "Error al recuperar..."
+
     const data = JSON.parse(text);
+
+    return data
+  } catch (err) {
+    throw `Error en acción ${accion_gsb}: ${err}`
+  }
+}
+
+// Funciones para cargar trabajadores desde GSBase y guardarlos en IndexedDB
+export async function cargarTrabajadoresDesdeGSBase() {
+  try {
+    const data = await ejecutarAccionGSB('a_leer_trabajadores');
     console.log("🔄 Respuesta de la API:", data);
     if (data.resultado === "ok") {
-      const trabajadores = data.datos.map(row => ({
-        cdtrabajador: row[0],
-        nombre: row[1],
-        password: row[2],
-        tipo: row[3]
-      }));
+      const trabajadores = data.datos.filter(a => a.cdtb && a.cdtb.trim() !== '');
 
-      await guardarTrabajadores(trabajadores);
+      await guardarTabla('trabajadores', trabajadores);
     } else {
       console.warn("⚠ Respuesta incorrecta:", data);
     }
@@ -89,6 +114,127 @@ export async function cargarTrabajadoresDesdeGSBase() {
     console.error("❌ Error al cargar trabajadores:", err);
   }
 }
+
+// Funciones para cargar artículos desde GSBase y guardarlos en IndexedDB
+export async function cargarArticulosDesdeGSBase() {
+  try {
+    const data = await ejecutarAccionGSB('a_leer_articulos');
+    console.log("🔄 Respuesta de la API:", data);
+    if (data.resultado === "ok") {
+      const articulos = data.datos.filter(a => a.cdart && a.cdart.trim() !== '');
+
+
+      console.log("🔄 Artículos obtenidos:", articulos);
+      guardarTabla('articulos', articulos);
+      // Mostrar el número de artículos sincronizados
+      console.log("🟢 Artículos sincronizados:", articulos.length);
+    } else {
+      console.warn("⚠ Respuesta incorrecta:", data);
+    }
+  } catch (err) {
+    console.error("❌ Error al cargar artículos:");
+    if (err instanceof SyntaxError) {
+      console.error("⚠️ La respuesta no es JSON válido.");
+    }
+
+    // Mostrar el mensaje completo (stacktrace)
+    console.error(err.stack || err.message || err);
+  }
+}
+
+// Funciones para cargar clientes desde GSBase y guardarlos en IndexedDB
+export async function cargarClientesDesdeGSBase() {
+  try {
+    const data = await ejecutarAccionGSB('a_leer_clientes');
+    console.log("🔄 Respuesta de la API:", data);
+    if (data.resultado === "ok") {
+      const clientes = data.datos.filter(c => c.cdcl && c.cdcl.trim() !== '');
+
+      console.log("🔄 Clientes obtenidos:", clientes);
+      await guardarTabla('clientes', clientes);
+    } else {
+      console.warn("⚠ Respuesta incorrecta:", data);
+    }
+  } catch (err) {
+    console.error("❌ Error al cargar clientes:");
+    if (err instanceof SyntaxError) {
+      console.error("⚠️ La respuesta no es JSON válido.");
+    }
+
+    // Mostrar el mensaje completo (stacktrace)
+    console.error(err.stack || err.message || err);
+  }
+}
+
+// Funciones para cargar maquinas desde GSBase y guardarlos en IndexedDB
+export async function cargarMaquinasDesdeGSBase() {
+  try {
+    const data = await ejecutarAccionGSB('a_leer_maquinas');
+    console.log("🔄 Respuesta de la API:", data);
+    if (data.resultado === "ok") {
+      const maquinas = data.datos.filter(m => m.cdmaq && m.cdmaq.trim() !== '');
+
+      console.log("🔄 Maquinas obtenidas:", maquinas);
+      await guardarTabla('maquinas', maquinas);
+    } else {
+      console.warn("⚠ Respuesta incorrecta:", data);
+    }
+  } catch (err) {
+    console.error("❌ Error al cargar maquinas:");
+    if (err instanceof SyntaxError) {
+      console.error("⚠️ La respuesta no es JSON válido.");
+    }
+
+    // Mostrar el mensaje completo (stacktrace)
+    console.error(err.stack || err.message || err);
+  }
+}
+
+//Calcular estados maquinas
+/* function traducirEstado(maq_es) {
+  switch (maq_es) {
+    case "0": return "Normal en funcionamiento";
+    case "1": return "Averiada en cliente";
+    case "2": return "Enviada a nuestro SAT";
+    case "3": return "Enviada a SAT del fabricante";
+    default: return "Desconocido";
+  }
+}
+
+function traducirVenta(maq_vdo) {
+  switch (maq_vdo) {
+    case "S": return "Vendido";
+    case "N": return "No vendido";
+    case "A": return "Alquilado";
+    default: return "Desconocido";
+  }
+} */
+
+// Funciones para cargar partes de asistencia desde GSBase y guardarlos en IndexedDB
+export async function cargarPartesAsistenciaDesdeGSBase() {
+  try {
+    const data = await ejecutarAccionGSB('a_leer_partesasis');
+    console.log("🔄 Respuesta de la API:", data);
+    if (data.resultado === "ok") {
+      const partesAsistencia = data.datos.filter(p => p.cdpart && p.cdpart.trim() !== '');
+
+      console.log("🔄 Partes de asistencia obtenidas:", partesAsistencia);
+      await guardarTabla('partes_asistencia', partesAsistencia);
+    } else {
+      console.warn("⚠ Respuesta incorrecta:", data);
+    }
+  } catch (err) {
+    console.error("❌ Error al cargar partes de asistencia:");
+    if (err instanceof SyntaxError) {
+      console.error("⚠️ La respuesta no es JSON válido.");
+    }
+
+    // Mostrar el mensaje completo (stacktrace)
+    console.error(err.stack || err.message || err);
+  }
+}
+
+
 const conexionlogin = false;
 export function ejecutarSiHayConexion(fnOnline, fnOffline) {
   if (navigator.onLine) {
@@ -100,11 +246,73 @@ export function ejecutarSiHayConexion(fnOnline, fnOffline) {
   }
 }
 
-export async function sincronizacionCompleta() {
-  cargarTrabajadoresDesdeGSBase();
+// Función para sincronizar datos offline al cargar la aplicación
+export async function sincronizarDatosOffline() {
+  mostrarModalSincronizacion();
+  actualizarMensajeModal('Paso 1: Comprobando preferencia offline_manual...');
+
+  // Paso 1: comprobar preferencia offline_manual
+  if (offline_manual !== 'S' && offline_manual !== 'A') {
+    console.log('⛔ Modo offline no habilitado. Sincronización cancelada.');
+    actualizarMensajeModal('Modo offline no activado. Abortando...');
+    setTimeout(ocultarModalSincronizacion, 2000);
+    return;
+  }
+
+  // Paso 2: comprobar conexión
+  if (!navigator.onLine) {
+    actualizarMensajeModal('Sin conexión. Abortando...');
+    setTimeout(ocultarModalSincronizacion, 2000);
+    console.log('❌ Sin conexión. No se puede sincronizar.');
+    return;
+  }
+
+  // Paso 3: comprobar licencia GSBase
+  try {
+    actualizarMensajeModal('Paso 3: Verificando licencia con GSBase...');
+
+    const res = await ejecutarAccionGSB('a_comprobar_conexion');
+    const licenciaRemota = res['licencia'];
+    if (licenciaRemota !== id_licencia_gsb) {
+      actualizarMensajeModal('Licencia incorrecta. Abortando...');
+      setTimeout(ocultarModalSincronizacion, 5000);
+      console.log('🚫 Licencia no coincide. Sincronización denegada.');
+      return;
+    }
+
+    // Paso 5: descargar datos y almacenarlos en IndexedDB
+
+    actualizarMensajeModal('Paso 4: Descargando datos...');
+    await cargarTrabajadoresDesdeGSBase();
+    await cargarArticulosDesdeGSBase();
+    await cargarClientesDesdeGSBase();
+    await cargarMaquinasDesdeGSBase();
+    console.log('✅ Licencia validada. Procediendo a descargar datos...');
+    actualizarMensajeModal('Sincronización completa ✅');
+    setTimeout(ocultarModalSincronizacion, 5000);
+
+  } catch (error) {
+    console.error('❌ Error durante la comprobación de conexión con GSBase:', error);
+    console.error(error);
+    actualizarMensajeModal('Error durante la sincronización.');
+    setTimeout(ocultarModalSincronizacion, 3000);
+  }
 }
 
+// Funciones para mostrar y ocultar el modal de sincronización informativo para la interfaz usuario
+export function mostrarModalSincronizacion() {
+  document.getElementById('modalSync').style.display = 'flex';
+  actualizarMensajeModal('Comprobando preferencias...');
+}
 
+export function actualizarMensajeModal(mensaje) {
+  const p = document.getElementById('mensajeSync');
+  if (p) p.textContent = mensaje;
+}
+
+export function ocultarModalSincronizacion() {
+  document.getElementById('modalSync').style.display = 'none';
+}
 
 // Función para hashear texto usando SHA-256
 /* async function hashTexto(texto) {
