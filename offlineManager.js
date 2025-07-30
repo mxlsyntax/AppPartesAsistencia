@@ -87,6 +87,43 @@ export async function ejecutarAccionGSB(accion_gsb, arg = '{}') {
   }
 }
 
+// Función loginOffline mejorada y reutilizable
+export async function loginOffline(inputUsuario, inputPassword) {
+  if (!inputUsuario || !inputPassword) {
+    return {
+      ok: false,
+      mensaje: 'Debe introducir usuario y contraseña'
+    };
+  }
+
+  try {
+    const trabajador = await db.trabajadores.get(inputUsuario);
+    if (!trabajador) {
+      return {
+        ok: false,
+        mensaje: 'Trabajador no encontrado en modo offline'
+      };
+    }
+    //console.log(inputUsuario, inputPassword, trabajador);
+    const hashedInput = await hashPassword(inputPassword);
+    if (trabajador.tb_pass !== hashedInput) {
+      return {
+        ok: false,
+        mensaje: 'Contraseña incorrecta'
+      };
+    } else{
+      return true;
+    }
+
+
+  } catch (err) {
+    return {
+      ok: false,
+      mensaje: 'Error en login offline: ' + err
+    };
+  }
+}
+
 // Función para cargar las tablas en local tras traerlas de GSBase
 export async function guardarTabla(nombreTabla, datos) {
   if (!db[nombreTabla]) {
@@ -129,14 +166,36 @@ function mostrarModalErrorSync() {
 }
 
 
-// Funciones para cargar trabajadores desde GSBase y guardarlos en IndexedDB
+// 🔐 Función para hashear la contraseña usando SHA-256
+async function hashPassword(password) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Función para cargar trabajadores desde GSBase y guardarlos en IndexedDB
 export async function cargarTrabajadoresDesdeGSBase() {
   try {
     const data = await ejecutarAccionGSB('a_leer_trabajadores');
+
     if (data.resultado === "ok") {
-      const trabajadores = data.datos.filter(a => a.cdtb && a.cdtb.trim() !== '');
+      const trabajadoresCrudos = data.datos.filter(a => a.cdtb && a.cdtb.trim() !== '');
+
+      // Hasheamos solo si hay contraseña
+      const trabajadores = await Promise.all(trabajadoresCrudos.map(async t => {
+        const password = t.tb_pass?.trim();
+        const hashedPass = password ? await hashPassword(password) : '';
+
+        return {
+          ...t,
+          tb_pass: hashedPass
+        };
+      }));
 
       await guardarTabla('trabajadores', trabajadores);
+      //console.log("✅ Trabajadores guardados en IndexedDB:", trabajadores.length);
     } else {
       console.warn("⚠ Respuesta incorrecta:", data);
     }
@@ -324,7 +383,7 @@ export async function sincronizarDatosOffline() {
     console.log("📦 Última sincronización guardada:", ahora.toLocaleString());
 
     actualizarMensajeModal('Sincronización completa ✅');
-    setTimeout(ocultarModalSincronizacion, 5000);
+    setTimeout(ocultarModalSincronizacion, 2000);
 
   } catch (error) {
     console.error("❌ Error en sincronización:", err);

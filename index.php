@@ -1357,58 +1357,36 @@ include("config.php");
 <script type="module">
     import {
         ejecutarSiHayConexion,
-        db
+        db,
+        loginOffline
     } from './offlineManager.js';
 
     function loginOnline() {
         window.Login(); // Llama a la función definida más arriba en el mismo index.php
     }
-
     // Esta función queda visible desde el botón onclick
-    window.gestionarLogin = function() {
-        ejecutarSiHayConexion(loginOnline, loginOffline);
+    const conexionfake = false;
+    window.gestionarLogin = async function() {
+        if (conexionfake) {
+            console.log("🌐 Conectado a Internet. Procediendo con el login online...");
+            loginOnline();
+        } else {
+            console.warn("🔌 Sin conexión a Internet. Procediendo con el login offline...");
+            const inputUsuario = document.getElementById("trabajador_login")?.value.trim();
+            const inputPassword = document.getElementById("password_login")?.value.trim();
+            const resultado = await loginOffline(inputUsuario, inputPassword);
+
+            if (resultado === true) {
+                //console.log("🔒 Login offline exitoso");
+                AccederAplicacion();
+            } else {
+                console.error("❌ Login offline fallido");
+            }
+        }
     };
 
 
-    // Función loginOffline mejorada y reutilizable
-    async function loginOffline() {
-        const inputUsuario = document.getElementById("trabajador_login")?.value.trim();
-        const inputPassword = document.getElementById("password_login")?.value.trim();
-        if (!inputUsuario || !inputPassword) {
-            return {
-                ok: false,
-                mensaje: 'Debe introducir usuario y contraseña'
-            };
-        }
 
-        try {
-
-
-            const trabajador = await db.trabajadores.get(inputUsuario);
-            if (!trabajador) {
-                return {
-                    ok: false,
-                    mensaje: 'Trabajador no encontrado en modo offline'
-                };
-            }
-            console.log(inputUsuario, inputPassword, trabajador);
-            if (trabajador.password !== inputPassword) {
-                return {
-                    ok: false,
-                    mensaje: 'Contraseña incorrecta'
-                };
-            } else {
-                AccederAplicacion();
-            }
-
-
-        } catch (err) {
-            return {
-                ok: false,
-                mensaje: 'Error en login offline: ' + err
-            };
-        }
-    }
     document.addEventListener('DOMContentLoaded', () => {
         // Asignar comportamiento al botón de reintento
         const btnReintentar = document.getElementById('btnReintentarSync');
