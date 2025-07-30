@@ -261,7 +261,7 @@ include("config.php");
 
                                 document.getElementById("cdaplicacion").value = array_json[0].ids_app_android.replaceAll("-", "");
 
-                                document.getElementById("mostrar_obras").value = array_json[0].mostrar_obras;
+                                document.getElementById("offline_manual").value = array_json[0].offline_manual;
 
                                 //alert("Carga de preferencias correcta!!!" + array_json[0].mostrar_obras); 
                                 //NG20240702 GUARDAMOS ESTOS DATOS EN LOCALSTORAGE EN EL LADO DEL CLIENTE
@@ -337,6 +337,7 @@ include("config.php");
             SetVariableLocalStorage("ejercicio", document.getElementById("ejercicio").value);
             SetVariableLocalStorage("empresa_id", document.getElementById("empresa_id").value);
             SetVariableLocalStorage("trabajador_pref", document.getElementById("trabajador_pref").value);
+            SetVariableLocalStorage("offline_manual", document.getElementById("offline_manual").value);
             SetVariableLocalStorage("url_conexion", url_conexion);
 
             var modo_dios = document.getElementById('cbxModoDios').checked ? 1 : 0;
@@ -586,8 +587,17 @@ include("config.php");
             }
         }
 
+        function mostrarUltimaSincronizacion() {
+            const fechaStr = localStorage.getItem('ultima_sincronizacion');
+
+            if (fechaStr) {
+                const fecha = new Date(fechaStr);
+                return `📅 Última sincronización: ${fecha.toLocaleString()}`;
+            }
+        }
+
         function Mostrar_acciones_info() {
-            alert(acciones_info);
+            alert(acciones_info + "\n" + mostrarUltimaSincronizacion());
         }
 
         function mostrar_pass() {
@@ -1176,6 +1186,10 @@ include("config.php");
                                 <input class="form-control" id="ventana_pref" type="text" placeholder="Ventana de gsbase" disabled />
                                 <label for="ventana_pref">Introduzca el nombre de la ventana en GSbase</label>
                             </div>
+                            <div class="form-floating mb-3">
+                                <input class="form-control" id="offline_manual" type="text" placeholder="Conf offline de gsbase" disabled />
+                                <label for="offline_manual">Introduzca la configuración offline de GSbase</label>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -1290,6 +1304,27 @@ include("config.php");
             <p id="mensajeSync">Iniciando...</p>
         </div>
     </div>
+
+    <!-- Modal de Error de Sincronización -->
+    <div class="modal fade" id="modalErrorSync" tabindex="-1" aria-labelledby="modalErrorSyncLabel">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-danger border-2">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="modalErrorSyncLabel">❌ Error en la sincronización</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <p>Ocurrió un problema al sincronizar los datos offline.<br>¿Deseas reintentar o cancelar?</p>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" id="btnReintentarSync" class="btn btn-primary">🔁 Reintentar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">❌ Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     <script type="text/javascript">
         cargaInicialLocalStorage();
 
@@ -1308,6 +1343,7 @@ include("config.php");
             document.getElementById("ejercicio").value = GetVariableLocalStorage("ejercicio");
             document.getElementById("empresa_id").value = GetVariableLocalStorage("empresa_id");
             document.getElementById("cdaplicacion").value = GetVariableLocalStorage("cdaplicacion");
+            document.getElementById("offline_manual").value = GetVariableLocalStorage("offline_manual");
         }
     </script>
 
@@ -1373,8 +1409,22 @@ include("config.php");
             };
         }
     }
-</script>
-<script type="module">
+    document.addEventListener('DOMContentLoaded', () => {
+        // Asignar comportamiento al botón de reintento
+        const btnReintentar = document.getElementById('btnReintentarSync');
+        if (btnReintentar) {
+            btnReintentar.addEventListener('click', () => {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modalErrorSync'));
+                if (modal) modal.hide();
+
+                console.log("🔁 Reintentando sincronización...");
+                sincronizarDatosOffline(); // tu función real aquí
+            });
+        } else {
+            console.warn("❌ No se encontró el botón btnReintentarSync");
+        }
+    });
+
     import {
         sincronizarDatosOffline
     } from './offlineManager.js';

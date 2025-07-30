@@ -27,20 +27,8 @@ const cd_pref_autogen = GetVariableLocalStorage("cd_pref_autogen");
 const historico_activo = GetVariableLocalStorage("historico_activo");
 const url_conexion = GetVariableLocalStorage("url_conexion");
 const id_licencia_gsb = GetVariableLocalStorage("id_licencia_gsb_pref");
+const offline_manual = GetVariableLocalStorage("offline_manual");
 
-const offline_manual = 'A';
-
-// Función para cargar las tablas en local tras traerlas de GSBase
-export async function guardarTabla(nombreTabla, datos) {
-  if (!db[nombreTabla]) {
-    throw new Error(`❌ La tabla "${nombreTabla}" no existe en IndexedDB`);
-  }
-
-  await db[nombreTabla].clear();
-  await db[nombreTabla].bulkAdd(datos);
-
-  console.log(`✅ Datos guardados en la tabla ${nombreTabla}:`, datos.length);
-}
 
 export async function guardarAccionPendiente(accion) {
   await db.acciones_pendientes.add({
@@ -88,9 +76,10 @@ export async function ejecutarAccionGSB(accion_gsb, arg = '{}') {
     });
 
     const text = await res.text();
-    console.log("🔍 Respuesta cruda del servidor:", text); // 🔴 Aquí verás "Error al recuperar..."
+    //console.log("🔍 Respuesta cruda del servidor:", text); // 🔴 Aquí verás "Error al recuperar..."
 
     const data = JSON.parse(text);
+    //console.log("🔄 Respuesta de la API:", data);
 
     return data
   } catch (err) {
@@ -98,11 +87,52 @@ export async function ejecutarAccionGSB(accion_gsb, arg = '{}') {
   }
 }
 
+// Función para cargar las tablas en local tras traerlas de GSBase
+export async function guardarTabla(nombreTabla, datos) {
+  if (!db[nombreTabla]) {
+    throw new Error(`❌ La tabla "${nombreTabla}" no existe en IndexedDB`);
+  }
+
+  await db[nombreTabla].clear();
+  await db[nombreTabla].bulkAdd(datos);
+
+  //console.log(`✅ Datos guardados en la tabla ${nombreTabla}:`, datos.length);
+}
+
+// Funciones para mostrar y ocultar el modal de sincronización informativo para la interfaz usuario
+export function mostrarModalSincronizacion() {
+  document.getElementById('modalSync').style.display = 'flex';
+  actualizarMensajeModal('Comprobando preferencias...');
+}
+
+export function actualizarMensajeModal(mensaje) {
+  const p = document.getElementById('mensajeSync');
+  if (p) p.textContent = mensaje;
+}
+
+export function ocultarModalSincronizacion() {
+  document.getElementById('modalSync').style.display = 'none';
+}
+
+function mostrarModalErrorSync() {
+  const modalElement = document.getElementById('modalErrorSync');
+  const modalInstance = new bootstrap.Modal(modalElement, {
+    backdrop: 'static', // impide cerrar haciendo clic fuera
+    keyboard: false      // impide cerrar con ESC
+  });
+  modalInstance.show();
+
+  // Asegura foco tras mostrarlo (previene el warning y mejora accesibilidad)
+  setTimeout(() => {
+    document.getElementById('btnReintentarSync').focus();
+  }, 300);
+}
+
+
 // Funciones para cargar trabajadores desde GSBase y guardarlos en IndexedDB
 export async function cargarTrabajadoresDesdeGSBase() {
   try {
     const data = await ejecutarAccionGSB('a_leer_trabajadores');
-    console.log("🔄 Respuesta de la API:", data);
     if (data.resultado === "ok") {
       const trabajadores = data.datos.filter(a => a.cdtb && a.cdtb.trim() !== '');
 
@@ -119,15 +149,12 @@ export async function cargarTrabajadoresDesdeGSBase() {
 export async function cargarArticulosDesdeGSBase() {
   try {
     const data = await ejecutarAccionGSB('a_leer_articulos');
-    console.log("🔄 Respuesta de la API:", data);
     if (data.resultado === "ok") {
       const articulos = data.datos.filter(a => a.cdart && a.cdart.trim() !== '');
 
 
-      console.log("🔄 Artículos obtenidos:", articulos);
       guardarTabla('articulos', articulos);
       // Mostrar el número de artículos sincronizados
-      console.log("🟢 Artículos sincronizados:", articulos.length);
     } else {
       console.warn("⚠ Respuesta incorrecta:", data);
     }
@@ -146,11 +173,9 @@ export async function cargarArticulosDesdeGSBase() {
 export async function cargarClientesDesdeGSBase() {
   try {
     const data = await ejecutarAccionGSB('a_leer_clientes');
-    console.log("🔄 Respuesta de la API:", data);
     if (data.resultado === "ok") {
       const clientes = data.datos.filter(c => c.cdcl && c.cdcl.trim() !== '');
 
-      console.log("🔄 Clientes obtenidos:", clientes);
       await guardarTabla('clientes', clientes);
     } else {
       console.warn("⚠ Respuesta incorrecta:", data);
@@ -170,16 +195,18 @@ export async function cargarClientesDesdeGSBase() {
 export async function cargarMaquinasDesdeGSBase() {
   try {
     const data = await ejecutarAccionGSB('a_leer_maquinas');
-    console.log("🔄 Respuesta de la API:", data);
     if (data.resultado === "ok") {
       const maquinas = data.datos.filter(m => m.cdmq && m.cdmq.trim() !== '');
 
-      console.log("🔄 Maquinas obtenidas:", maquinas);
+      //console.log("🔄 Maquinas obtenidas:", maquinas);
       await guardarTabla('maquinas', maquinas);
     } else {
       console.warn("⚠ Respuesta incorrecta:", data);
     }
   } catch (err) {
+    console.error("❌ Error en sincronización:", err);
+    ocultarModalSincronizacion();
+    mostrarModalErrorSync();
     console.error("❌ Error al cargar maquinas:");
     if (err instanceof SyntaxError) {
       console.error("⚠️ La respuesta no es JSON válido.");
@@ -214,12 +241,11 @@ function traducirVenta(maq_vdo) {
 export async function cargarPartesDesdeGSBase() {
   try {
     const data = await ejecutarAccionGSB('a_leer_partesasis');
-    console.log("🔄 Respuesta de la API (partes):", data);
 
     if (data.resultado === "ok") {
       const partes = data.datos.filter(p => p.cdpt && p.cdpt.trim() !== '');
 
-      console.log("📦 Partes obtenidos:", partes);
+      //console.log("📦 Partes obtenidos:", partes);
 
       await guardarTabla('partes', partes);
     } else {
@@ -292,32 +318,22 @@ export async function sincronizarDatosOffline() {
     await cargarMaquinasDesdeGSBase();
     await cargarPartesDesdeGSBase();
 
-    console.log('✅ Licencia validada. Procediendo a descargar datos...');
+    //console.log('✅ Licencia validada. Procediendo a descargar datos...');
+    const ahora = new Date();
+    localStorage.setItem('ultima_sincronizacion', ahora.toISOString());
+    console.log("📦 Última sincronización guardada:", ahora.toLocaleString());
+
     actualizarMensajeModal('Sincronización completa ✅');
     setTimeout(ocultarModalSincronizacion, 5000);
 
   } catch (error) {
-    console.error('❌ Error durante la comprobación de conexión con GSBase:', error);
-    console.error(error);
-    actualizarMensajeModal('Error durante la sincronización.');
+    console.error("❌ Error en sincronización:", err);
+    mostrarModalErrorSync();
     setTimeout(ocultarModalSincronizacion, 3000);
   }
 }
 
-// Funciones para mostrar y ocultar el modal de sincronización informativo para la interfaz usuario
-export function mostrarModalSincronizacion() {
-  document.getElementById('modalSync').style.display = 'flex';
-  actualizarMensajeModal('Comprobando preferencias...');
-}
 
-export function actualizarMensajeModal(mensaje) {
-  const p = document.getElementById('mensajeSync');
-  if (p) p.textContent = mensaje;
-}
-
-export function ocultarModalSincronizacion() {
-  document.getElementById('modalSync').style.display = 'none';
-}
 
 // Función para hashear texto usando SHA-256
 /* async function hashTexto(texto) {
