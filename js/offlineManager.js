@@ -1,9 +1,7 @@
 import Dexie from 'https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.mjs';
 export const db = new Dexie("AppPartesAsistenciaDB");
-function GetVariableLocalStorage(nombre_variable) {
-    //alert("llegaget");
-    return localStorage.getItem(nombre_variable + "_" + '00212');
-}
+
+
 // Definición de las tablas
 db.version(6).stores({
   trabajadores: 'cdtb, tb_deno, tb_pass, tb_app',
@@ -52,7 +50,7 @@ export async function ejecutarAccionGSB(accion_gsb, arg = '{}') {
     return;
   }
 
-  const url = `http://localhost/AppWeb/AppPartesAsistencia/${url_conexion}`;
+  const url = `http://localhost/AppWeb/AppPartesAsistencia/api/${url_conexion}`;
 
   const params = {
     servidor_ip_publica: servidor_ip_publica,

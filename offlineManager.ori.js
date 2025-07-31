@@ -1,9 +1,7 @@
 import Dexie from 'https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.mjs';
 export const db = new Dexie("AppPartesAsistenciaDB");
-function GetVariableLocalStorage(nombre_variable) {
-    //alert("llegaget");
-    return localStorage.getItem(nombre_variable + "_" + '00212');
-}
+
+
 // Definición de las tablas
 db.version(6).stores({
   trabajadores: 'cdtb, tb_deno, tb_pass, tb_app',
@@ -71,7 +69,7 @@ export async function ejecutarAccionGSB(accion_gsb, arg = '{}') {
   };
 
   try {
-    const res = await fetch(url, {
+    const res = await fetch(url_conexion, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams(params)
@@ -113,7 +111,7 @@ export async function loginOffline(inputUsuario, inputPassword) {
         ok: false,
         mensaje: 'Contraseña incorrecta'
       };
-    } else {
+    } else{
       return true;
     }
 
@@ -129,8 +127,6 @@ export async function loginOffline(inputUsuario, inputPassword) {
 // Función para cargar las tablas en local tras traerlas de GSBase
 export async function guardarTabla(nombreTabla, datos) {
   if (!db[nombreTabla]) {
-    ocultarModalSincronizacion();
-    mostrarModalErrorSync();
     throw new Error(`❌ La tabla "${nombreTabla}" no existe en IndexedDB`);
   }
 
@@ -204,8 +200,6 @@ export async function cargarTrabajadoresDesdeGSBase() {
       console.warn("⚠ Respuesta incorrecta:", data);
     }
   } catch (err) {
-    ocultarModalSincronizacion();
-    mostrarModalErrorSync();
     console.error("❌ Error al cargar trabajadores:", err);
   }
 }
@@ -224,8 +218,6 @@ export async function cargarArticulosDesdeGSBase() {
       console.warn("⚠ Respuesta incorrecta:", data);
     }
   } catch (err) {
-    ocultarModalSincronizacion();
-    mostrarModalErrorSync();
     console.error("❌ Error al cargar artículos:");
     if (err instanceof SyntaxError) {
       console.error("⚠️ La respuesta no es JSON válido.");
@@ -248,8 +240,6 @@ export async function cargarClientesDesdeGSBase() {
       console.warn("⚠ Respuesta incorrecta:", data);
     }
   } catch (err) {
-    ocultarModalSincronizacion();
-    mostrarModalErrorSync();
     console.error("❌ Error al cargar clientes:");
     if (err instanceof SyntaxError) {
       console.error("⚠️ La respuesta no es JSON válido.");
@@ -322,8 +312,6 @@ export async function cargarPartesDesdeGSBase() {
     }
 
   } catch (err) {
-    ocultarModalSincronizacion();
-    mostrarModalErrorSync();
     console.error("❌ Error al cargar partes:");
     if (err instanceof SyntaxError) {
       console.error("⚠️ La respuesta no es JSON válido.");
@@ -331,6 +319,18 @@ export async function cargarPartesDesdeGSBase() {
 
     // Mostrar el mensaje completo (stacktrace)
     console.error(err.stack || err.message || err);
+  }
+}
+
+
+const conexionlogin = false;
+export function ejecutarSiHayConexion(fnOnline, fnOffline) {
+  if (navigator.onLine) {
+    console.log("🟢 Conexión disponible");
+    if (typeof fnOnline === 'function') fnOnline();
+  } else {
+    console.log("🔴 Sin conexión");
+    if (typeof fnOffline === 'function') fnOffline();
   }
 }
 

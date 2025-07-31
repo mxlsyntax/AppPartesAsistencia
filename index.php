@@ -1356,7 +1356,6 @@ include("config.php");
 </html>
 <script type="module">
     import {
-        ejecutarSiHayConexion,
         db,
         loginOffline
     } from './offlineManager.js';
