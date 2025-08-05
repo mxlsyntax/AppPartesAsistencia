@@ -57,6 +57,8 @@
     <!-- Exportación -->
     <script src="https://cdn.jsdelivr.net/npm/tableexport.jquery.plugin@1.29.0/tableExport.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap-table@1.23.2/dist/extensions/export/bootstrap-table-export.min.js"></script>
+    <!-- Utilidades diversas, como gestion de fechas gsBase -->
+    <script src="./js/utilidades.js"></script>
 
 <body>
     <?php
@@ -66,7 +68,7 @@
     ?>
 
     <!-- Filtros -->
-    <div class="row mb-3">
+    <div class="container mb-3">
         <select id="filtroCliente" class="form-select"></select>
         <select id="filtroMaquina" class="form-select"></select>
         <div class="col-md-3">
@@ -150,13 +152,17 @@
             }
             datosOriginales = respuesta;
             console.log("🌐 Datos de partes cargados:", datosOriginales);
+            const partesFormateados = datosOriginales.map(p => ({
+                ...p,
+                pt_fec: (Num_aFecha(p.pt_fec))
+            }));
             $('#tablaPartes').bootstrapTable('destroy');
             $('#tablaPartes').bootstrapTable({
-                data: respuesta
+                data: partesFormateados
             });
             // ✅ MUY IMPORTANTE: recalcular vista después de cargar
             setTimeout(() => {
-                $('#tablaArticulos').bootstrapTable('resetView');
+                $('#tablaPartes').bootstrapTable('resetView');
             }, 10);
         } catch (err) {
             console.error("❌ Error al cargar partes:", err);
@@ -191,8 +197,11 @@
 
         console.log("📌 Valor seleccionado - cliente:", cliente);
         console.log("📌 Valor de pt_cdcl:", datosOriginales.map(p => p.pt_denocl));
-
-        $('#tablaPartes').bootstrapTable('load', filtrados);
+        const partesFormateados = filtrados.map(p => ({
+            ...p,
+            pt_fec: (Num_aFecha(p.pt_fec))
+        }));
+        $('#tablaPartes').bootstrapTable('load', partesFormateados);
     }
 
     $('#tablaPartes').on('click-row.bs.table', function(e, row) {
