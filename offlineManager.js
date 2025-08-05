@@ -1,17 +1,22 @@
-import Dexie from 'https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.mjs';
+import Dexie from "https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.mjs";
+import sha256 from "https://cdn.jsdelivr.net/npm/js-sha256@0.9.0/+esm";
+
 export const db = new Dexie("AppPartesAsistenciaDB");
 function GetVariableLocalStorage(nombre_variable) {
-    //alert("llegaget");
-    return localStorage.getItem(nombre_variable + "_" + '00212');
+  //alert("llegaget");
+  return localStorage.getItem(nombre_variable + "_" + "00212");
 }
 // Definición de las tablas
 db.version(6).stores({
-  trabajadores: 'cdtb, tb_deno, tb_pass, tb_app',
-  clientes: 'cdcl, cdcif, cl_deno, cl_pob, cl_prov, cl_tel, cl_ema, cl_fpag, cl_denofp',
-  articulos: 'cdart, ar_deno, ar_ref, ar_bar, ar_pvp, ar_prv, ar_dprv',
-  maquinas: 'cdmq, mq_desc,mq_ref, mq_cdp, mq_prv, mq_ccl, mq_clien, mq_gar, mq_fv, mq_obs, mq_man, mq_vdo, mq_es',
-  partes: 'cdpt, pt_cdcl, pt_denocl, pt_del, pt_fec, pt_hav, pt_tna, pt_nmtn, pt_dsi, pt_fep, pt_hop, pt_est, pt_obs',
-  acciones_pendientes: '++id, accion, fecha, hora, usuario'
+  trabajadores: "cdtb, tb_deno, tb_pass, tb_app",
+  clientes:
+    "cdcl, cdcif, cl_deno, cl_pob, cl_prov, cl_tel, cl_ema, cl_fpag, cl_denofp",
+  articulos: "cdart, ar_deno, ar_ref, ar_bar, ar_pvp, ar_prv, ar_dprv",
+  maquinas:
+    "cdmq, mq_desc, mq_ref, mq_cdp, mq_prv, mq_ccl, mq_clien, mq_gar, mq_fv, mq_obs, mq_man, mq_vdo, mq_es",
+  partes:
+    "cdpt, pt_cdcl, pt_denocl, pt_del, pt_fec, pt_hav, pt_tna, pt_nmtn, pt_dsi, pt_fep, pt_hop, pt_est, pt_obs",
+  acciones_pendientes: "++id, accion, fecha, hora, usuario",
 });
 
 export default db;
@@ -31,22 +36,26 @@ const url_conexion = GetVariableLocalStorage("url_conexion");
 const id_licencia_gsb = GetVariableLocalStorage("id_licencia_gsb_pref");
 const offline_manual = GetVariableLocalStorage("offline_manual");
 
-
 export async function guardarAccionPendiente(accion) {
   await db.acciones_pendientes.add({
     accion: accion.accion,
     argumentos: accion.argumentos,
     fecha: accion.fecha || new Date().toISOString().slice(0, 10),
-    hora: accion.hora || new Date().toLocaleTimeString('es-ES'),
-    usuario: accion.usuario
+    hora: accion.hora || new Date().toLocaleTimeString("es-ES"),
+    usuario: accion.usuario,
   });
 }
 
-// Función para ejecutar acciones en GSBase 
-export async function ejecutarAccionGSB(accion_gsb, arg = '{}') {
+// Función para ejecutar acciones en GSBase
+export async function ejecutarAccionGSB(accion_gsb, arg = "{}") {
   if (
-    !servidor_ip_publica || !puerto || !empresa_gestora ||
-    !aplicacion || !ejercicio || !empresa_id || !ventana_pref
+    !servidor_ip_publica ||
+    !puerto ||
+    !empresa_gestora ||
+    !aplicacion ||
+    !ejercicio ||
+    !empresa_id ||
+    !ventana_pref
   ) {
     alert("Faltan valores de conexión");
     return;
@@ -67,25 +76,25 @@ export async function ejecutarAccionGSB(accion_gsb, arg = '{}') {
     cdaplicacion: cdaplicacion,
     accion: "ejecutar_accion_gsb",
     accion_gsb: accion_gsb,
-    arg: arg || '{}'
+    arg: arg || "{}",
   };
 
   try {
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams(params)
+      body: new URLSearchParams(params),
     });
 
     const text = await res.text();
-    //console.log("🔍 Respuesta cruda del servidor:", text); // 🔴 Aquí verás "Error al recuperar..."
+    console.log("🔍 Respuesta cruda del servidor:", text); // 🔴 Aquí verás "Error al recuperar..."
 
     const data = JSON.parse(text);
     //console.log("🔄 Respuesta de la API:", data);
 
-    return data
+    return data;
   } catch (err) {
-    throw `Error en acción ${accion_gsb}: ${err}`
+    throw `Error en acción ${accion_gsb}: ${err}`;
   }
 }
 
@@ -94,7 +103,7 @@ export async function loginOffline(inputUsuario, inputPassword) {
   if (!inputUsuario || !inputPassword) {
     return {
       ok: false,
-      mensaje: 'Debe introducir usuario y contraseña'
+      mensaje: "Debe introducir usuario y contraseña",
     };
   }
 
@@ -103,7 +112,7 @@ export async function loginOffline(inputUsuario, inputPassword) {
     if (!trabajador) {
       return {
         ok: false,
-        mensaje: 'Trabajador no encontrado en modo offline'
+        mensaje: "Trabajador no encontrado en modo offline",
       };
     }
     //console.log(inputUsuario, inputPassword, trabajador);
@@ -111,17 +120,15 @@ export async function loginOffline(inputUsuario, inputPassword) {
     if (trabajador.tb_pass !== hashedInput) {
       return {
         ok: false,
-        mensaje: 'Contraseña incorrecta'
+        mensaje: "Contraseña incorrecta",
       };
     } else {
       return true;
     }
-
-
   } catch (err) {
     return {
       ok: false,
-      mensaje: 'Error en login offline: ' + err
+      mensaje: "Error en login offline: " + err,
     };
   }
 }
@@ -142,63 +149,62 @@ export async function guardarTabla(nombreTabla, datos) {
 
 // Funciones para mostrar y ocultar el modal de sincronización informativo para la interfaz usuario
 export function mostrarModalSincronizacion() {
-  document.getElementById('modalSync').style.display = 'flex';
-  actualizarMensajeModal('Comprobando preferencias...');
+  document.getElementById("modalSync").style.display = "flex";
+  actualizarMensajeModal("Comprobando preferencias...");
 }
 
 export function actualizarMensajeModal(mensaje) {
-  const p = document.getElementById('mensajeSync');
+  const p = document.getElementById("mensajeSync");
   if (p) p.textContent = mensaje;
 }
 
 export function ocultarModalSincronizacion() {
-  document.getElementById('modalSync').style.display = 'none';
+  document.getElementById("modalSync").style.display = "none";
 }
 
 function mostrarModalErrorSync() {
-  const modalElement = document.getElementById('modalErrorSync');
+  const modalElement = document.getElementById("modalErrorSync");
   const modalInstance = new bootstrap.Modal(modalElement, {
-    backdrop: 'static', // impide cerrar haciendo clic fuera
-    keyboard: false      // impide cerrar con ESC
+    backdrop: "static", // impide cerrar haciendo clic fuera
+    keyboard: false, // impide cerrar con ESC
   });
   modalInstance.show();
 
   // Asegura foco tras mostrarlo (previene el warning y mejora accesibilidad)
   setTimeout(() => {
-    document.getElementById('btnReintentarSync').focus();
+    document.getElementById("btnReintentarSync").focus();
   }, 300);
 }
 
-
 // 🔐 Función para hashear la contraseña usando SHA-256
 async function hashPassword(password) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return sha256(password.trim()); // Retorna string hexadecimal
 }
 
 // Función para cargar trabajadores desde GSBase y guardarlos en IndexedDB
 export async function cargarTrabajadoresDesdeGSBase() {
   try {
-    const data = await ejecutarAccionGSB('a_leer_trabajadores');
+    const data = await ejecutarAccionGSB("a_leer_trabajadores");
 
     if (data.resultado === "ok") {
-      const trabajadoresCrudos = data.datos.filter(a => a.cdtb && a.cdtb.trim() !== '');
+      const trabajadoresCrudos = data.datos.filter(
+        (a) => a.cdtb && a.cdtb.trim() !== ""
+      );
 
       // Hasheamos solo si hay contraseña
-      const trabajadores = await Promise.all(trabajadoresCrudos.map(async t => {
-        const password = t.tb_pass?.trim();
-        const hashedPass = password ? await hashPassword(password) : '';
+      const trabajadores = await Promise.all(
+        trabajadoresCrudos.map(async (t) => {
+          const password = t.tb_pass?.trim();
+          const hashedPass = password ? await hashPassword(password) : "";
 
-        return {
-          ...t,
-          tb_pass: hashedPass
-        };
-      }));
+          return {
+            ...t,
+            tb_pass: hashedPass,
+          };
+        })
+      );
 
-      await guardarTabla('trabajadores', trabajadores);
+      await guardarTabla("trabajadores", trabajadores);
       //console.log("✅ Trabajadores guardados en IndexedDB:", trabajadores.length);
     } else {
       console.warn("⚠ Respuesta incorrecta:", data);
@@ -207,18 +213,20 @@ export async function cargarTrabajadoresDesdeGSBase() {
     ocultarModalSincronizacion();
     mostrarModalErrorSync();
     console.error("❌ Error al cargar trabajadores:", err);
+    throw err;
   }
 }
 
 // Funciones para cargar artículos desde GSBase y guardarlos en IndexedDB
 export async function cargarArticulosDesdeGSBase() {
   try {
-    const data = await ejecutarAccionGSB('a_leer_articulos');
+    const data = await ejecutarAccionGSB("a_leer_articulos");
     if (data.resultado === "ok") {
-      const articulos = data.datos.filter(a => a.cdart && a.cdart.trim() !== '');
+      const articulos = data.datos.filter(
+        (a) => a.cdart && a.cdart.trim() !== ""
+      );
 
-
-      guardarTabla('articulos', articulos);
+      guardarTabla("articulos", articulos);
       // Mostrar el número de artículos sincronizados
     } else {
       console.warn("⚠ Respuesta incorrecta:", data);
@@ -233,17 +241,18 @@ export async function cargarArticulosDesdeGSBase() {
 
     // Mostrar el mensaje completo (stacktrace)
     console.error(err.stack || err.message || err);
+    throw err;
   }
 }
 
 // Funciones para cargar clientes desde GSBase y guardarlos en IndexedDB
 export async function cargarClientesDesdeGSBase() {
   try {
-    const data = await ejecutarAccionGSB('a_leer_clientes');
+    const data = await ejecutarAccionGSB("a_leer_clientes");
     if (data.resultado === "ok") {
-      const clientes = data.datos.filter(c => c.cdcl && c.cdcl.trim() !== '');
+      const clientes = data.datos.filter((c) => c.cdcl && c.cdcl.trim() !== "");
 
-      await guardarTabla('clientes', clientes);
+      await guardarTabla("clientes", clientes);
     } else {
       console.warn("⚠ Respuesta incorrecta:", data);
     }
@@ -257,18 +266,19 @@ export async function cargarClientesDesdeGSBase() {
 
     // Mostrar el mensaje completo (stacktrace)
     console.error(err.stack || err.message || err);
+    throw err;
   }
 }
 
 // Funciones para cargar maquinas desde GSBase y guardarlos en IndexedDB
 export async function cargarMaquinasDesdeGSBase() {
   try {
-    const data = await ejecutarAccionGSB('a_leer_maquinas');
+    const data = await ejecutarAccionGSB("a_leer_maquinas");
     if (data.resultado === "ok") {
-      const maquinas = data.datos.filter(m => m.cdmq && m.cdmq.trim() !== '');
+      const maquinas = data.datos.filter((m) => m.cdmq && m.cdmq.trim() !== "");
 
       //console.log("🔄 Maquinas obtenidas:", maquinas);
-      await guardarTabla('maquinas', maquinas);
+      await guardarTabla("maquinas", maquinas);
     } else {
       console.warn("⚠ Respuesta incorrecta:", data);
     }
@@ -283,6 +293,7 @@ export async function cargarMaquinasDesdeGSBase() {
 
     // Mostrar el mensaje completo (stacktrace)
     console.error(err.stack || err.message || err);
+    throw err;
   }
 }
 
@@ -309,18 +320,16 @@ function traducirVenta(maq_vdo) {
 // Funciones para cargar partes de asistencia desde GSBase y guardarlos en IndexedDB
 export async function cargarPartesDesdeGSBase() {
   try {
-    const data = await ejecutarAccionGSB('a_leer_partesasis');
-
+    const data = await ejecutarAccionGSB("a_leer_partesasis");
     if (data.resultado === "ok") {
-      const partes = data.datos.filter(p => p.cdpt && p.cdpt.trim() !== '');
+      const partes = data.datos.filter((p) => p.cdpt && p.cdpt.trim() !== "");
 
       //console.log("📦 Partes obtenidos:", partes);
 
-      await guardarTabla('partes', partes);
+      await guardarTabla("partes", partes);
     } else {
       console.warn("⚠ Respuesta incorrecta al cargar partes:", data);
     }
-
   } catch (err) {
     ocultarModalSincronizacion();
     mostrarModalErrorSync();
@@ -331,46 +340,47 @@ export async function cargarPartesDesdeGSBase() {
 
     // Mostrar el mensaje completo (stacktrace)
     console.error(err.stack || err.message || err);
+    throw err;
   }
 }
 
 // Función para sincronizar datos offline al cargar la aplicación
 export async function sincronizarDatosOffline() {
   mostrarModalSincronizacion();
-  actualizarMensajeModal('Paso 1: Comprobando preferencia offline_manual...');
+  actualizarMensajeModal("Paso 1: Comprobando preferencia offline_manual...");
 
   // Paso 1: comprobar preferencia offline_manual
-  if (offline_manual !== 'S' && offline_manual !== 'A') {
-    console.log('⛔ Modo offline no habilitado. Sincronización cancelada.');
-    actualizarMensajeModal('Modo offline no activado. Abortando...');
+  if (offline_manual !== "S" && offline_manual !== "A") {
+    console.log("⛔ Modo offline no habilitado. Sincronización cancelada.");
+    actualizarMensajeModal("Modo offline no activado. Abortando...");
     setTimeout(ocultarModalSincronizacion, 2000);
     return;
   }
 
   // Paso 2: comprobar conexión
   if (!navigator.onLine) {
-    actualizarMensajeModal('Sin conexión. Abortando...');
+    actualizarMensajeModal("Sin conexión. Abortando...");
     setTimeout(ocultarModalSincronizacion, 2000);
-    console.log('❌ Sin conexión. No se puede sincronizar.');
+    console.log("❌ Sin conexión. No se puede sincronizar.");
     return;
   }
 
   // Paso 3: comprobar licencia GSBase
   try {
-    actualizarMensajeModal('Paso 3: Verificando licencia con GSBase...');
+    actualizarMensajeModal("Paso 3: Verificando licencia con GSBase...");
 
-    const res = await ejecutarAccionGSB('a_comprobar_conexion');
-    const licenciaRemota = res['licencia'];
+    const res = await ejecutarAccionGSB("a_comprobar_conexion");
+    const licenciaRemota = res["licencia"];
     if (licenciaRemota !== id_licencia_gsb) {
-      actualizarMensajeModal('Licencia incorrecta. Abortando...');
+      actualizarMensajeModal("Licencia incorrecta. Abortando...");
       setTimeout(ocultarModalSincronizacion, 5000);
-      console.log('🚫 Licencia no coincide. Sincronización denegada.');
+      console.log("🚫 Licencia no coincide. Sincronización denegada.");
       return;
     }
 
     // Paso 5: descargar datos y almacenarlos en IndexedDB
 
-    actualizarMensajeModal('Paso 4: Descargando datos...');
+    actualizarMensajeModal("Paso 4: Descargando datos...");
     await cargarTrabajadoresDesdeGSBase();
     await cargarArticulosDesdeGSBase();
     await cargarClientesDesdeGSBase();
@@ -378,21 +388,19 @@ export async function sincronizarDatosOffline() {
     await cargarPartesDesdeGSBase();
 
     //console.log('✅ Licencia validada. Procediendo a descargar datos...');
-    const ahora = new Date();
-    localStorage.setItem('ultima_sincronizacion', ahora.toISOString());
-    console.log("📦 Última sincronización guardada:", ahora.toLocaleString());
 
-    actualizarMensajeModal('Sincronización completa ✅');
+    actualizarMensajeModal("Sincronización completa ✅");
     setTimeout(ocultarModalSincronizacion, 2000);
 
+    const ahora = new Date();
+    localStorage.setItem("ultima_sincronizacion", ahora.toISOString());
+    console.log("📦 Última sincronización guardada:", ahora.toLocaleString());
   } catch (error) {
-    console.error("❌ Error en sincronización:", err);
+    console.error("❌ Error en sincronización:", error);
     mostrarModalErrorSync();
     setTimeout(ocultarModalSincronizacion, 3000);
   }
 }
-
-
 
 // Función para hashear texto usando SHA-256
 /* async function hashTexto(texto) {
@@ -409,4 +417,3 @@ export async function sincronizarDatosOffline() {
   localStorage.setItem("password_hash_" + cdtrabajador, hash);
   localStorage.setItem("tipo_" + cdtrabajador, tipo || "empleado");
 } */
-

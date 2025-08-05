@@ -1,7 +1,6 @@
-<?php
-// Puedes pasar el título desde la página donde incluyas esta cabecera:
-$titulo = $titulo ?? 'Sin título';
-?>
+<?php isset($titulo) ? $titulo : 'Sin título'; ?>
+<?php isset($acciones) ? $acciones : 'No hay acciones definidas'; ?>
+
 
 <!-- Cabecera reutilizable -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
@@ -11,7 +10,7 @@ $titulo = $titulo ?? 'Sin título';
     <i class="bi bi-arrow-left fs-4"></i>
   </button>
 
-  <h4 class="m-0 flex-grow-1 text-center" style="font-weight: bold;"><?= htmlspecialchars($titulo) ?></h5>
+  <h4 class="m-0 flex-grow-1 text-center" style="font-weight: bold;"><?= htmlspecialchars($titulo) ?></h4>
 
   <button class="btn btn-link text-white p-0 ms-2" onclick="mostrarInfo()">
     <i class="bi bi-info-circle fs-4"></i>
@@ -19,7 +18,11 @@ $titulo = $titulo ?? 'Sin título';
 </header>
 
 <script>
-function mostrarInfo() {
-  alert("ℹ Aquí puedes mostrar información de ayuda o instrucciones.");
-}
+  function mostrarInfo() {
+    <?php if (isset($acciones) && $acciones !== ''): ?>
+      alert(<?= json_encode($acciones) ?>);
+    <?php else: ?>
+      alert("No se ha definido ninguna acción.");
+    <?php endif; ?>
+  }
 </script>

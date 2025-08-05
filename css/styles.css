@@ -11417,3 +11417,8 @@ Podriamos hacer lo mismo dependiendo del tamanio, por arriba se hace*/
   background-color: #003061;
   color: white;
 }
+
+.bootstrap-table .fixed-table-loading {
+  display: none !important;
+}
+

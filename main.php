@@ -497,24 +497,11 @@ if ($tipo_trab_login == 'S') {
 <body id="page-top" onload="ComprobarConfiguracion()">
     <div class="g-signin2" data-onsuccess="onSignIn"></div>
     <!-- APP BAR-->
-    <nav class="navbar navbar-expand-lg bg-secondary text-uppercase fixed-top" id="mainNav">
-        <div class="container">
-            <a class="navbar-brand" href="#" onclick="Salir()" href="#" title="Volver al login"><i class="fa-solid fa-backward-step" style="font-size: 30px; color: #FFFFFF;"></i></a>
-            <a class="navbar-brand" style="margin-left: 10%;">MAIN</a>
-            <button class="navbar-toggler text-uppercase font-weight-bold bg-primary text-white rounded" type="button" data-bs-toggle="collapse" data-bs-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
-                Menu
-                <i class="fas fa-bars"></i>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarResponsive">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item mx-0 mx-lg-1" style="display: none;" id="img_modo_dios"><a class="nav-link py-3 px-0 px-lg-3 rounded" onclick="" href="#" title="Modo Dios activado"><img src="assets/modo_dios2.png" width="30" height="30"></a></li>
-                    <li class="nav-item mx-0 mx-lg-1" style="display: none;" id="li_alta"><a class="nav-link py-3 px-0 px-lg-3 rounded" onclick="ObtenerInfoAlta()" href="#" title="Información de alta"><i class="fa-solid fa-clipboard-question fa-xl"></i></a></li>
-                    <li class="nav-item mx-0 mx-lg-1"><a class="nav-link py-3 px-0 px-lg-3 rounded" onclick="Mostrar_acciones_info()" href="#">Info</a></li>
-                    <!--<li class="nav-item mx-0 mx-lg-1"><a class="nav-link py-3 px-0 px-lg-3 rounded" href="#contact">Contact</a></li>-->
-                </ul>
-            </div>
-        </div>
-    </nav>
+    <?php
+    $titulo = 'MAIN'; // Cambia el título para cada vista
+    $acciones = 'a_devolver_avisos, a_escribir_historico';
+    include 'header.php';
+    ?>
     <!-- Portfolio Section-->
     <section class="page-section portfolio" id="portfolio">
         <div class="container d-flex align-items-center flex-column">
@@ -555,8 +542,8 @@ if ($tipo_trab_login == 'S') {
                     <button class="btn btn-global" type="button" onclick="location.href='documentacion_bus.php'" id="btn_documentacion" style="margin: 10px; min-height: 70px; min-width: 170px; display: none;">Documentación</button>
                     <button class="btn btn-global" type="button" onclick="location.href='articulos_bus.php'" style="margin: 10px; min-height: 70px; min-width: 170px;">Artículos</button>
                     <button class="btn btn-global" type="button" onclick="location.href='clientes_bus.php'" style="margin: 10px; min-height: 70px; min-width: 170px;">Clientes</button>
-                    <button class="btn btn-global" type="button" onclick="AltaDieta()" style="margin: 10px; min-height: 70px; min-width: 170px;">Nueva Dieta</button>
                     <button class="btn btn-global" type="button" onclick="location.href='maquinas_bus.php'" style="margin: 10px; min-height: 70px; min-width: 170px;">Maquinas</button>
+                    <button class="btn btn-global" type="button" onclick="location.href='partes_bus.php'" style="margin: 10px; min-height: 70px; min-width: 170px;">Partes</button>
 
                     <!-- <button class="btn btn-global" type="button" onclick="location.href='gestion_bus2.php'" style="margin: 10px; min-height: 70px; min-width: 170px;">Gestión Pedidos 2</button>  -->
                     <button class="btn btn-global" type="button" onclick="location.href='ausencias_bus.php'" style="margin: 10px; min-height: 70px; min-width: 170px; display: none;">Ausencias</button>

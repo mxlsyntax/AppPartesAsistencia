@@ -1,8 +1,7 @@
 function GetVariableLocalStorage(nombre_variable) {
-    //alert("llegaget");
-    return localStorage.getItem(nombre_variable + "_" + '00212');
+  //alert("llegaget");
+  return localStorage.getItem(nombre_variable + "_" + "00212");
 }
-
 
 const llamadas_php = GetVariableLocalStorage("llamadas_php");
 const servidor_ip_publica = GetVariableLocalStorage("servidor_ip_publica");
@@ -19,129 +18,139 @@ const url_conexion = GetVariableLocalStorage("url_conexion");
 const id_licencia_gsb = GetVariableLocalStorage("id_licencia_gsb_pref");
 const offline_manual = GetVariableLocalStorage("offline_manual");
 
+// Función para ejecutar acciones en GSBase
+export async function ejecutarAccionGSB(accion_gsb, arg = "{}") {
+  if (
+    !servidor_ip_publica ||
+    !puerto ||
+    !empresa_gestora ||
+    !aplicacion ||
+    !ejercicio ||
+    !empresa_id ||
+    !ventana_pref
+  ) {
+    alert("Faltan valores de conexión");
+    return;
+  }
 
-// Función para ejecutar acciones en GSBase 
-export async function ejecutarAccionGSB(accion_gsb, arg = '{}') {
-    if (
-        !servidor_ip_publica || !puerto || !empresa_gestora ||
-        !aplicacion || !ejercicio || !empresa_id || !ventana_pref
-    ) {
-        alert("Faltan valores de conexión");
-        return;
-    }
+  const url = `http://localhost/AppWeb/AppPartesAsistencia/${url_conexion}`;
+  const params = {
+    servidor_ip_publica: servidor_ip_publica,
+    puerto: puerto,
+    empresa_gestora: empresa_gestora,
+    aplicacion: aplicacion,
+    ejercicio: ejercicio,
+    empresa_id: empresa_id,
+    ventana_pref: ventana_pref,
+    cd_pref_autogen: cd_pref_autogen,
+    historico_activo: historico_activo,
+    cdaplicacion: cdaplicacion,
+    accion: "ejecutar_accion_gsb",
+    accion_gsb: accion_gsb,
+    arg: arg || "{}",
+  };
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams(params),
+    });
 
-    const url = `http://localhost/AppWeb/AppPartesAsistencia/${url_conexion}`;
-    const params = {
-        servidor_ip_publica: servidor_ip_publica,
-        puerto: puerto,
-        empresa_gestora: empresa_gestora,
-        aplicacion: aplicacion,
-        ejercicio: ejercicio,
-        empresa_id: empresa_id,
-        ventana_pref: ventana_pref,
-        cd_pref_autogen: cd_pref_autogen,
-        historico_activo: historico_activo,
-        cdaplicacion: cdaplicacion,
-        accion: "ejecutar_accion_gsb",
-        accion_gsb: accion_gsb,
-        arg: arg || '{}'
-    };
+    const text = await res.text();
+    //console.log("🔍 Respuesta cruda del servidor:", text); // 🔴 Aquí verás "Error al recuperar..."
 
-    try {
-        const res = await fetch(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: new URLSearchParams(params)
-        });
+    const data = JSON.parse(text);
+    //console.log("🔄 Respuesta de la API:", data);
 
-        const json = await res.json();
-        return json;        //console.log("🔍 Respuesta cruda del servidor:", text); // 🔴 Aquí verás "Error al recuperar..."
-
-        //console.log("🔄 Respuesta de la API:", data);
-
-        return data
-    } catch (err) {
-        throw `Error en acción ${accion_gsb}: ${err}`
-    }
+    return data;
+  } catch (err) {
+    throw `Error en acción ${accion_gsb}: ${err}`;
+  }
 }
-
-
 
 // Función para cargar trabajadores desde GSBase y guardarlos en IndexedDB
 export async function cargarTrabajadoresDesdeGSBase() {
-    try {
-        const data = await ejecutarAccionGSB('a_leer_trabajadores');
+  try {
+    const data = await ejecutarAccionGSB("a_leer_trabajadores");
 
-        if (data.resultado === "ok") {
-            const trabajadoresCrudos = data.datos.filter(a => a.cdtb && a.cdtb.trim() !== '');
+    if (data.resultado === "ok") {
+      const trabajadoresCrudos = data.datos.filter(
+        (a) => a.cdtb && a.cdtb.trim() !== ""
+      );
 
-            // Hasheamos solo si hay contraseña
-            const trabajadores = await Promise.all(trabajadoresCrudos.map(async t => {
-                const password = t.tb_pass?.trim();
-                const hashedPass = password ? await hashPassword(password) : '';
+      // Hasheamos solo si hay contraseña
+      const trabajadores = await Promise.all(
+        trabajadoresCrudos.map(async (t) => {
+          const password = t.tb_pass?.trim();
+          const hashedPass = password ? await hashPassword(password) : "";
 
-                return {
-                    ...t,
-                    tb_pass: hashedPass
-                };
-            }));
+          return {
+            ...t,
+            tb_pass: hashedPass,
+          };
+        })
+      );
 
-            await guardarTabla('trabajadores', trabajadores);
-            //console.log("✅ Trabajadores guardados en IndexedDB:", trabajadores.length);
-        } else {
-            console.warn("⚠ Respuesta incorrecta:", data);
-        }
-    } catch (err) {
-        ocultarModalSincronizacion();
-        mostrarModalErrorSync();
-        console.error("❌ Error al cargar trabajadores:", err);
+      await guardarTabla("trabajadores", trabajadores);
+      //console.log("✅ Trabajadores guardados en IndexedDB:", trabajadores.length);
+    } else {
+      console.warn("⚠ Respuesta incorrecta:", data);
     }
+  } catch (err) {
+    ocultarModalSincronizacion();
+    mostrarModalErrorSync();
+    console.error("❌ Error al cargar trabajadores:", err);
+    throw err;
+  }
 }
 
-// Funciones para cargar artículos desde GSBase 
+// Funciones para cargar artículos desde GSBase
 export async function cargarArticulosDesdeGSBase() {
-    try {
-        const data = await ejecutarAccionGSB('a_leer_articulos');
-        return data;
-    } catch (err) {
-        console.error("❌ Error al cargar artículos:");
-        if (err instanceof SyntaxError) {
-            console.error("⚠️ La respuesta no es JSON válido.");
-        }
-        // Mostrar el mensaje completo (stacktrace)
-        console.error(err.stack || err.message || err);
+  try {
+    const data = await ejecutarAccionGSB("a_leer_articulos");
+    return data;
+  } catch (err) {
+    console.error("❌ Error al cargar artículos:");
+    if (err instanceof SyntaxError) {
+      console.error("⚠️ La respuesta no es JSON válido.");
     }
+    // Mostrar el mensaje completo (stacktrace)
+    console.error(err.stack || err.message || err);
+    throw err;
+  }
 }
 
-// Funciones para cargar clientes desde GSBase 
-export async function cargarClientesDesdeGSBase() {
-    try {
-        const data = await ejecutarAccionGSB('a_leer_clientes');
-        return data;
-    } catch (err) {
-        console.error("❌ Error al cargar clientes:");
-        if (err instanceof SyntaxError) {
-            console.error("⚠️ La respuesta no es JSON válido.");
-        }
-        // Mostrar el mensaje completo (stacktrace)
-        console.error(err.stack || err.message || err);
+// Funciones para cargar clientes desde GSBase
+export async function cargarClientesDesdeGSBase(args) {
+  try {
+    const data = await ejecutarAccionGSB("a_leer_clientes", args);
+    return data;
+  } catch (err) {
+    console.error("❌ Error al cargar clientes:");
+    if (err instanceof SyntaxError) {
+      console.error("⚠️ La respuesta no es JSON válido.");
     }
+    // Mostrar el mensaje completo (stacktrace)
+    console.error(err.stack || err.message || err);
+    throw err;
+  }
 }
 
 // Funciones para cargar maquinas desde GSBase
-export async function cargarMaquinasDesdeGSBase() {
-    try {
-        const data = await ejecutarAccionGSB('a_leer_maquinas');
-        return data;
-    } catch (err) {
-        console.error("❌ Error al cargar máquinas:", err);
-        if (err instanceof SyntaxError) {
-            console.error("⚠️ La respuesta no es JSON válido.");
-        }
-
-        // Mostrar el mensaje completo (stacktrace)
-        console.error(err.stack || err.message || err);
+export async function cargarMaquinasDesdeGSBase(args) {
+  const arg = JSON.stringify({ cdcliente: args }); // 👈 Este nombre debe coincidir con el que espera PHP
+  try {
+    const data = await ejecutarAccionGSB("a_leer_maquinas", arg);
+    if (data.resultado === "ok") {
+      return data;
+    } else {
+      console.warn("⚠️ Máquinas no encontrados:", data);
+      return [];
     }
+  } catch (err) {
+    console.error("❌ Error al cargar máquinas:", err);
+    throw err;
+  }
 }
 
 //Calcular estados maquinas
@@ -164,30 +173,19 @@ function traducirVenta(maq_vdo) {
   }
 } */
 
-// Funciones para cargar partes de asistencia desde GSBase y guardarlos en IndexedDB
-export async function cargarPartesDesdeGSBase() {
-    try {
-        const data = await ejecutarAccionGSB('a_leer_partesasis');
-
-        if (data.resultado === "ok") {
-            const partes = data.datos.filter(p => p.cdpt && p.cdpt.trim() !== '');
-
-            //console.log("📦 Partes obtenidos:", partes);
-
-            await guardarTabla('partes', partes);
-        } else {
-            console.warn("⚠ Respuesta incorrecta al cargar partes:", data);
-        }
-
-    } catch (err) {
-        ocultarModalSincronizacion();
-        mostrarModalErrorSync();
-        console.error("❌ Error al cargar partes:");
-        if (err instanceof SyntaxError) {
-            console.error("⚠️ La respuesta no es JSON válido.");
-        }
-
-        // Mostrar el mensaje completo (stacktrace)
-        console.error(err.stack || err.message || err);
+// Funciones para cargar partes de asistencia desde GSBase
+export async function cargarPartesDesdeGSBase(args) {
+  const arg = JSON.stringify({ cdcliente: args }); // 👈 Este nombre debe coincidir con el que espera PHP
+  try {
+    const data = await ejecutarAccionGSB("a_leer_partesasis", arg);
+    if (data.resultado === "ok") {
+      return data;
+    } else {
+      console.warn("⚠️ Partes no encontrados:", data);
+      return [];
     }
+  } catch (err) {
+    console.error("❌ Error al cargar partes:", err);
+    throw err;
+  }
 }

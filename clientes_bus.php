@@ -30,68 +30,76 @@
     <link href="css/styles.css" rel="stylesheet" />
     <!-- Con el manifest saldrá la pregunta, al menos en Chrome de si queremos instalarla-->
     <link rel="manifest" href="manifest.json">
-    <!-- JQUERY -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <!-- Tablas bootstrap -->
+    <!-- jQuery (solo uno) -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+    <!-- Bootstrap 5 -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css">
+
+    <!-- Bootstrap Table CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-table@1.23.2/dist/bootstrap-table.min.css">
+
+    <!-- Bootstrap Table core -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap-table@1.23.2/dist/bootstrap-table.min.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap-table@1.23.2/dist/extensions/toolbar/bootstrap-table-toolbar.min.js"></script>
-    <!-- <script src="//cdn.datatables.net/1.10.10/js/jquery.dataTables.min.js"></script>
-            Icons bootstrap -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css">
-    <!-- Autorefresco bootstrap -->
+    <!-- Idioma español -->
+    <script src="https://unpkg.com/bootstrap-table@1.23.2/dist/locale/bootstrap-table-es-ES.min.js"></script>
+
+    <!-- Extensión mobile (opcional) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap-table@1.23.2/dist/extensions/mobile/bootstrap-table-mobile.min.js"></script>
+
+    <!-- Extensión auto-refresh (si la usas) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap-table@1.23.2/dist/extensions/auto-refresh/bootstrap-table-auto-refresh.min.js"></script>
 
-    <!-- Export bootstrap -->
+    <!-- Exportación -->
     <script src="https://cdn.jsdelivr.net/npm/tableexport.jquery.plugin@1.29.0/tableExport.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tableexport.jquery.plugin@1.29.0/libs/jsPDF/jspdf.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap-table@1.23.2/dist/bootstrap-table.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap-table@1.23.2/dist/extensions/export/bootstrap-table-export.min.js"></script>
 
-    <!-- El siguiente script es para que alterne automaticamente el tipo de vista de la tabla, si nota que no cogen
-         todas las columnas ademas hay que establecer en la def html de la tabla lo siguiente: data-mobile-responsive="true" establece la vista que establecemos con toggle... si no coge la tabla completa -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap-table@1.23.0/dist/extensions/mobile/bootstrap-table-mobile.min.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap-table@1.23.2/dist/bootstrap-table-locale-all.min.js"></script>
-    <!-- Tu script con imports (debe ir como módulo) -->
-    <script type="module"></script>
 
 <body>
     <?php
     $titulo = 'CLIENTES'; // Cambia el título para cada vista
+    $acciones = 'a_leer_clientes';
     include 'header.php';
     ?>
-    <div class="table-responsive mt-4">
-        <table id="tablaClientes" class="table table-striped"
-            data-toggle="table"
-            data-toolbar="#toolbar"
-            data-locale="es-ES"
-            data-search="true"
-            data-show-refresh="true"
-            data-show-toggle="false"
-            data-show-fullscreen="true"
-            data-mobile-responsive="true"
-            data-auto-refresh="false"
-            data-show-export="true"
-            data-visible-search="true"
-            data-click-to-select="true"
-            data-show-footer="false"
-            data-height="760"
-            data-id-field="codigo"
-            data-fixed-scroll="true"
-            data-show-columns="true"
-            data-show-columns-toggle-all="true">
-            <thead>
-                <tr>
-                    <th data-field="cl_cif" data-sortable="true">CIF</th>
-                    <th data-field="cl_deno" data-sortable="true">Nombre</th>
-                    <th data-field="cl_fpag" data-sortable="true">Cod. Forma Pago</th>
-                    <th data-field="cl_denofp" data-sortable="true">Forma de Pago</th>
-                    <th data-field="cl_obs" data-sortable="true">Observaciones</th>
-                </tr>
-            </thead>
-        </table>
+    <div class="container mt-2">
+        <div class="table-responsive mt-4">
+            <table id="tablaClientes" class="table table-striped"
+                data-toggle="table"
+                data-locale="es-ES"
+                data-search="true"
+                data-search-align="center"
+                data-show-refresh="true"
+                data-show-toggle="false"
+                data-show-fullscreen="true"
+                data-mobile-responsive="true"
+                data-auto-refresh="false"
+                data-show-export="true"
+                data-visible-search="true"
+                data-click-to-select="true"
+                data-show-footer="false"
+                data-sticky-header="true"
+                data-id-field="codigo"
+                data-fixed-scroll="true"
+                data-show-columns="true"
+                data-show-columns-toggle-all="true">
+                <thead>
+                    <tr>
+                        <th data-field="cdcl" data-sortable="true">Código Cliente</th>
+                        <th data-field="cl_cif" data-sortable="true">CIF</th>
+                        <th data-field="cl_deno" data-sortable="true">Nombre</th>
+                        <th data-field="cl_fpag" data-sortable="true">Cod. Forma Pago</th>
+                        <th data-field="cl_denofp" data-sortable="true">Forma de Pago</th>
+                        <th data-field="cl_obs" data-sortable="true">Observaciones</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+
     </div>
 </body>
 
@@ -120,7 +128,10 @@
             $('#tablaClientes').bootstrapTable({
                 data: respuesta
             });
-
+            // ✅ MUY IMPORTANTE: recalcular vista después de cargar
+            setTimeout(() => {
+                $('#tablaClientes').bootstrapTable('resetView');
+            }, 10);
         } catch (err) {
             console.error("❌ Error al cargar clientes:", err);
         }
@@ -134,6 +145,7 @@
     });
     $('#tablaClientes').on('click-row.bs.table', function(e, row) {
         // Redirige al formulario con el código del cliente como parámetro
-        window.location.href = `clientes_detalle.php?cdcli=${row.cdcli}`;
+        sessionStorage.setItem('clienteSeleccionado', JSON.stringify(row));
+        window.location.href = `clientes_detalle.php?cdcl=${row.cdcl}`;
     });
 </script>

@@ -1364,9 +1364,8 @@ include("config.php");
         window.Login(); // Llama a la función definida más arriba en el mismo index.php
     }
     // Esta función queda visible desde el botón onclick
-    const conexionfake = false;
     window.gestionarLogin = async function() {
-        if (conexionfake) {
+        if (navigator.onLine) {
             console.log("🌐 Conectado a Internet. Procediendo con el login online...");
             loginOnline();
         } else {
